@@ -78,5 +78,30 @@ namespace GrpcShopServer.Services
                     await responseStream.WriteAsync(prod);
                 }
         }
+
+        public override async Task<ProductInfo> UpdateProductCategory(ProductUpdate request, ServerCallContext context)
+        {
+            var cat = await _categoryRepository.GetRecById(request.CategoryId);
+            if (cat != null)
+            {
+                try
+                {
+                    var existingProd = await _productRepository.GetRecById(request.Id);
+                    existingProd.CategoryId = request.CategoryId;
+                    await _productRepository.UpdateRec(existingProd);
+
+                    var updatedProd = await _productRepository.GetProductDetailsById(request.Id);
+                    var grpcProd = _mapper.Map<ProductInfo>(updatedProd);
+                    return grpcProd;
+                }
+                catch(Exception e)
+                {
+                    _logger.LogError($"Some problems occured: {e.Message}");
+                }
+            }
+
+            _logger.LogError($"Category record with id={request.CategoryId} not found. Enter existing category id");
+            return null;
+        }
     }
 }
